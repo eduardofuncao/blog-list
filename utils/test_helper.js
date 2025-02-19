@@ -15,6 +15,14 @@ const initialBlogs = [
     }
 ]
 
+const nonExistingId = async () => {
+    const blog  = new Blog({ title: 'The art of war', author: 'Sun Tzu', url: 'https://en.wikipedia.org/wiki/The_Art_of_War', likes: 10 })
+    await blog.save()
+    await blog.deleteOne()
+
+    return blog._id.toString()
+}
+
 const blogsInDB = async () => {
     const blogs = await Blog.find({})
     return blogs.map(blog => blog.toJSON())
@@ -23,5 +31,6 @@ const blogsInDB = async () => {
 
 module.exports = { 
     initialBlogs,
+    nonExistingId,
     blogsInDB
 }
