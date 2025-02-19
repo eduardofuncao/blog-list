@@ -71,7 +71,7 @@ const mostLikedAuthor = (blogs) => {
 
 }
 
-
+/*
 const blogs = [
             {
                 _id: "5a422a851b54a676234d17f7",
@@ -132,8 +132,8 @@ blogs =[{
                 likes: 2,
                 __v: 0
             }]
-*/
 console.log(mostLikedAuthor(blogs));
+*/
 
 module.exports = {
     dummy,
