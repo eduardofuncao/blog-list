@@ -66,3 +66,50 @@ describe("when there is initially one user in db", () => {
     })
 
 })
+
+describe('when creating a user', () => {
+    test('the username must be at least 3 characters long', async () => {
+        const usersAtStart = await helper.usersInDB()
+        console.log(usersAtStart)
+        const newUserWrongUsername = {
+            username: 'ed',
+            name: 'eduardo',
+            password: 'myPassword'
+        }
+
+        const response = await api
+            .post('/api/users')
+            .send(newUserWrongUsername)
+            .expect(400)
+            .expect('Content-Type', /application\/json/)
+        const usersAtEnd = await helper.usersInDB()
+
+
+        assert(response.body.error.includes('username and password length must be least 3 characters long and return a 400 status code'))
+        assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+    })
+
+    test('the password must be at least 3 characters long and return a 400 status code', async () => {
+        const usersAtStart = await helper.usersInDB()
+        console.log(usersAtStart)
+        const newUserWrongUsername = {
+            username: 'edu',
+            name: 'eduardo',
+            password: 'pw'
+        }
+
+        const response = await api
+            .post('/api/users')
+            .send(newUserWrongUsername)
+            .expect(400)
+            .expect('Content-Type', /application\/json/)
+        const usersAtEnd = await helper.usersInDB()
+
+
+        assert(response.body.error.includes('username and password length must be least 3 characters long'))
+        assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+    })
+
+
+
+})
