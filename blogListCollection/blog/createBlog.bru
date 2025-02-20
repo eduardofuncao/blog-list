@@ -1,0 +1,21 @@
+meta {
+  name: createBlog
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3003/api/blogs
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Memórias Póstumas",
+    "author": "Machado",
+    "url": "machado.assis",
+    "likes": 12,
+    "userId": "67b7464401205d5c5a1102ac"
+  }
+}
