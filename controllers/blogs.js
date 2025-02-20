@@ -23,12 +23,7 @@ blogRouter.post('/', async (request, response) => {
     return response.status(400).json({error: 'url or title missing'})
   } 
 
-  const decodedToken = jwt.verify(request.token, process.env.SECRET)
-  if(!decodedToken.id) {
-    return response.status(401).json({error: 'token invalid'})
-  }
-  const user = await User.findById(decodedToken.id)
-
+  const user = await User.findById(request.user.id)
   const newBlog = new Blog({
     title: body.title,
     author: body.author,
@@ -67,20 +62,13 @@ blogRouter.put('/:id', async (request, response) => {
 })
 
 blogRouter.delete('/:id', async (request, response) => {
-  const decodedToken = jwt.verify(request.token, process.env.SECRET)
-  if (!decodedToken.id) {
-    return response.status(401).json({
-      error: 'token invalid'
-    })
-  }
   const blog = await Blog.findById(request.params.id)
   if (!blog) {
     return response.status(404).json({error: 'blog not found'})
   }
-  if (blog.user.toString() !== decodedToken.id.toString()) {
+  if (blog.user.toString() !== request.user.id.toString()) {
     return response.status(401).json({error: 'unauthorized'})
   }
-
 
   await Blog.findByIdAndDelete(request.params.id)
   response.status(204).end()
