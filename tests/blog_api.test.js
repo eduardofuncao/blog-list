@@ -2,6 +2,7 @@ const { describe, test, after, beforeEach } = require('node:test')
 const assert = require('assert');
 const mongoose = require('mongoose')
 const Blog = require('../models/blog')
+const User = require('../models/user')
 const supertest = require('supertest')
 const app = require('../app')
 const helper = require('../utils/test_helper');
@@ -11,7 +12,7 @@ const api = supertest(app)
 
 
 
-describe('when some notes are saved initially', () => {
+describe('when some blogs are saved initially', () => {
     
     beforeEach(async () => {
         await Blog.deleteMany({})
@@ -37,7 +38,32 @@ describe('when some notes are saved initially', () => {
     })
 })
 
-describe('adding a new blog', () => {
+describe('adding a new blog for a validated user', () => {
+    let loginResponse = ''
+    beforeEach(async () => {
+        await User.deleteMany({})
+        const createdUser = await api
+            .post('/api/users')
+            .send({
+                username: 'testUser',
+                name: 'Test User',
+                password: 'testPassword'
+            })
+            .expect(201)
+            .expect('Content-Type', /application\/json/)
+        
+        loginResponse = await api
+            .post('/api/login')
+            .send({
+                username: 'testUser',
+                password: 'testPassword'
+            })
+            .expect(200)
+            .expect('Content-Type', /application\/json/)
+        
+        
+    })
+
     test('succeeds with a valid blog', async () => {
         const newBlog = {
             title: 'React patterns',
@@ -45,29 +71,31 @@ describe('adding a new blog', () => {
             url: 'https://reactpatterns.com/',
             likes: 7
         }
-        await api
+        const createdBlog = await api
             .post('/api/blogs')
             .send(newBlog)
+            .set('authorization', 'Bearer ' + loginResponse.body.token)
             .expect(201)
 
         const blogsAtEnd = await helper.blogsInDB()
         assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1)
-        assert(blogsAtEnd.find(blog => blog.title === newBlog.title))
+        assert(blogsAtEnd.find(blog => blog.id === createdBlog.body.id))
     })
 
     test('makes likes default to zero if likes missing from the request body', async () => {
-        const testBlog = {
+        const noLikesBlog = {
             title: 'Type wars',
             author: 'Robert C. Martin',
             url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
         }
-        await api
+        const createdBlog = await api
             .post('/api/blogs')
-            .send(testBlog)
+            .send(noLikesBlog)
+            .set('authorization', 'Bearer ' + loginResponse.body.token)
             .expect(201)
         
         const blogsAtEnd = await helper.blogsInDB()
-        assert.strictEqual(blogsAtEnd.find(blog => blog.title === testBlog.title).likes, 0)
+        assert.strictEqual(blogsAtEnd.find(blog => blog.id === createdBlog.body.id).likes, 0)
     })
 
     test('fails with status code 400 if title or url is missing', async () => {
@@ -78,7 +106,21 @@ describe('adding a new blog', () => {
         await api
             .post('/api/blogs')
             .send(testBlog)
+            .set('authorization', 'Bearer ' + loginResponse.body.token)
             .expect(400)
+    })
+
+    test('fails with status code 401 if token is not provided', async () => {
+        const testBlog = {
+            title: 'React patterns',
+            author: 'Michael Chan',
+            url: 'https://reactpatterns.com/',
+            likes: 7
+        }
+        await api
+            .post('/api/blogs')
+            .send(testBlog)
+            .expect(401)
     })
 })
 
@@ -107,17 +149,52 @@ describe('viewing a specific note', () => {
 })
 
 describe('deleting a blog', () => {
+    let createdUser = {}
+    let loginResponse = {}
+    beforeEach(async () => {
+        await User.deleteMany({})
+        createdUser = await api
+            .post('/api/users')
+            .send({
+                username: 'testUser',
+                name: 'Test User',
+                password: 'testPassword'
+            })
+            .expect(201)
+            .expect('Content-Type', /application\/json/)
+        
+        loginResponse = await api
+            .post('/api/login')
+            .send({
+                username: 'testUser',
+                password: 'testPassword'
+            })
+            .expect(200)
+            .expect('Content-Type', /application\/json/)
+        
+        createdBlog = await api
+            .post('/api/blogs')
+            .send({
+                title: 'Wooly Mammoth',
+                author: 'Edgar Allan Poe',
+                url: 'https://en.wikipedia.org/wiki/Wooly_Mammoth',
+                likes: 3
+            })
+            .set('authorization', 'Bearer ' + loginResponse.body.token)
+            .expect(201)
+    })
     test('succeeds with status code 204 if id is valid', async () => {
         const blogsAtStart = await helper.blogsInDB()
-        const blogToDelete = blogsAtStart[0]
 
+        console.log(loginResponse.body)
         await api
-            .delete(`/api/blogs/${blogToDelete.id}`)
+            .delete(`/api/blogs/${createdBlog.body.id}`)
+            .set('authorization', 'Bearer ' + loginResponse.body.token)
             .expect(204)
 
         const blogsAtEnd = await helper.blogsInDB()
         const ids = blogsAtEnd.map(blog => blog.id)
-        assert(!ids.includes(blogToDelete.id))
+        assert(!ids.includes(createdBlog.body.id))
         assert(blogsAtEnd.length == blogsAtStart.length - 1)
     })
 })

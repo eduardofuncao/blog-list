@@ -22,6 +22,9 @@ blogRouter.post('/', async (request, response) => {
   if (!body.title || !body.url) {
     return response.status(400).json({error: 'url or title missing'})
   } 
+  if (!request.header('authorization')) {
+    return response.status(401).json({error: 'token missing'})
+  }
 
   const user = await User.findById(request.user.id)
   const newBlog = new Blog({
